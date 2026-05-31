@@ -1,0 +1,141 @@
+! ============================================================
+! Device: Admin-SW
+! Platform: Cisco 2960 or compatible Layer 2 switch
+! Paste location:
+!   1. Open Admin-SW CLI
+!   2. enable
+!   3. configure terminal
+! ============================================================
+
+enable
+configure terminal
+
+! ---------- Global configuration mode ----------
+hostname Admin-SW
+no ip domain-lookup
+ip domain-name securewave.local
+service password-encryption
+enable secret SW-Enable-2026
+banner motd # UNAUTHORIZED ACCESS TO SECUREWAVE SOLUTIONS NETWORK DEVICES IS PROHIBITED. ACCESS IS MONITORED. #
+
+username netadmin privilege 15 secret SwaveAdmin2026
+
+aaa new-model
+aaa authentication login default local
+aaa authorization exec default local
+
+crypto key generate rsa modulus 1024
+! If Packet Tracer prompts for key size, enter: 1024
+ip ssh version 2
+
+ip default-gateway 192.168.99.1
+
+vlan 10
+ name ADMIN
+exit
+vlan 99
+ name MANAGEMENT
+exit
+vlan 999
+ name BLACK_HOLE_UNUSED
+exit
+
+ip access-list standard SSH_IT_ONLY
+ remark Only IT VLAN users can remotely administer this switch
+ permit 192.168.30.0 0.0.0.255
+ deny any
+exit
+
+! ---------- Management SVI ----------
+! Interface configuration mode
+interface Vlan99
+ description Admin-SW management SVI
+ ip address 192.168.99.11 255.255.255.0
+ no shutdown
+exit
+
+! ---------- Admin user access ports ----------
+! Interface configuration mode
+interface FastEthernet0/1
+ description Admin-PC1
+ switchport mode access
+ switchport access vlan 10
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+interface FastEthernet0/2
+ description Admin-PC2
+ switchport mode access
+ switchport access vlan 10
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+! ---------- Trunk uplink to Core-SW ----------
+! Interface configuration mode
+interface FastEthernet0/24
+ description Trunk to Core-SW Fa0/1
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,99,999
+ no shutdown
+exit
+
+! ---------- Unused ports ----------
+! Interface configuration mode
+interface range FastEthernet0/3 - 23
+ description UNUSED - assigned to BLACK_HOLE_UNUSED
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+exit
+
+! ---------- Console and VTY ----------
+! Line configuration mode
+line console 0
+ password Console2026
+ login
+ logging synchronous
+ exec-timeout 10 0
+exit
+
+line vty 0 4
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+line vty 5 15
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+! If "login authentication default" is rejected, use:
+! login local
+
+end
+write memory
+
+! ---------- Verification commands ----------
+! show vlan brief
+! show interfaces trunk
+! show ip interface brief
+! show ip ssh
+! show port-security
+! show port-security interface FastEthernet0/1
+! show interfaces status
+! show line vty 0 4

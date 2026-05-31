@@ -1,0 +1,170 @@
+! ============================================================
+! Device: DMZ-Server-SW
+! Platform: Cisco 2960 or compatible Layer 2 switch
+! Paste location:
+!   1. Open DMZ-Server-SW CLI
+!   2. enable
+!   3. configure terminal
+! ============================================================
+
+enable
+configure terminal
+
+! ---------- Global configuration mode ----------
+hostname DMZ-Server-SW
+no ip domain-lookup
+ip domain-name securewave.local
+service password-encryption
+enable secret SW-Enable-2026
+banner motd # UNAUTHORIZED ACCESS TO SECUREWAVE SOLUTIONS NETWORK DEVICES IS PROHIBITED. ACCESS IS MONITORED. #
+
+username netadmin privilege 15 secret SwaveAdmin2026
+
+aaa new-model
+aaa authentication login default local
+aaa authorization exec default local
+
+crypto key generate rsa modulus 1024
+! If Packet Tracer prompts for key size, enter: 1024
+ip ssh version 2
+
+ip default-gateway 192.168.99.1
+
+vlan 50
+ name GUEST
+exit
+vlan 60
+ name DMZ_SERVERS
+exit
+vlan 99
+ name MANAGEMENT
+exit
+vlan 999
+ name BLACK_HOLE_UNUSED
+exit
+
+ip access-list standard SSH_IT_ONLY
+ remark Only IT VLAN users can remotely administer this switch
+ permit 192.168.30.0 0.0.0.255
+ deny any
+exit
+
+! ---------- Management SVI ----------
+interface Vlan99
+ description DMZ-Server-SW management SVI
+ ip address 192.168.99.15 255.255.255.0
+ no shutdown
+exit
+
+! ---------- DMZ server access ports ----------
+interface FastEthernet0/1
+ description DNS-Server in DMZ VLAN
+ switchport mode access
+ switchport access vlan 60
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+interface FastEthernet0/2
+ description Web-Server in DMZ VLAN
+ switchport mode access
+ switchport access vlan 60
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+interface FastEthernet0/4
+ description AAA-Server in DMZ VLAN
+ switchport mode access
+ switchport access vlan 60
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+! ---------- Guest AP bridge port ----------
+interface FastEthernet0/3
+ description Guest AP LAN port in VLAN 50
+ switchport mode access
+ switchport access vlan 50
+ switchport port-security
+ switchport port-security maximum 10
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+exit
+
+! The AP port allows more MAC addresses because multiple wireless clients may bridge through it.
+! User-facing wired ports still use a maximum of 1 or 2 MAC addresses.
+
+! ---------- Trunk uplink to Core-SW ----------
+interface FastEthernet0/24
+ description Trunk to Core-SW Fa0/5
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 50,60,99,999
+ no shutdown
+exit
+
+! ---------- Unused ports ----------
+interface range FastEthernet0/5 - 23
+ description UNUSED - assigned to BLACK_HOLE_UNUSED
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+exit
+
+! ---------- Console and VTY ----------
+line console 0
+ password Console2026
+ login
+ logging synchronous
+ exec-timeout 10 0
+exit
+
+line vty 0 4
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+line vty 5 15
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+! If "login authentication default" is rejected, use:
+! login local
+
+end
+write memory
+
+! ---------- Verification commands ----------
+! show vlan brief
+! show interfaces trunk
+! show ip interface brief
+! show ip ssh
+! show port-security
+! show port-security interface FastEthernet0/1
+! show port-security interface FastEthernet0/3
+! show interfaces status
+! show line vty 0 4

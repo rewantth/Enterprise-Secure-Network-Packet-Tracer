@@ -1,0 +1,401 @@
+! ============================================================
+! Device: Core-SW
+! Platform: Cisco 3560 or 3650 multilayer switch
+! Paste location:
+!   1. Open Core-SW CLI
+!   2. Enter privileged EXEC mode with: enable
+!   3. Enter global configuration mode with: configure terminal
+! ============================================================
+
+enable
+configure terminal
+
+! ---------- Global configuration mode ----------
+hostname Core-SW
+no ip domain-lookup
+ip domain-name securewave.local
+service password-encryption
+enable secret SW-Enable-2026
+banner motd # UNAUTHORIZED ACCESS TO SECUREWAVE SOLUTIONS NETWORK DEVICES IS PROHIBITED. ACCESS IS MONITORED. #
+
+username netadmin privilege 15 secret SwaveAdmin2026
+
+aaa new-model
+aaa authentication login default local
+aaa authorization exec default local
+
+! [PACKET TRACER LIMITATION]
+! If Packet Tracer supports external AAA in your version, test RADIUS or TACACS+ with AAA-Server 192.168.60.30.
+! Compatible fallback used here: local AAA.
+
+crypto key generate rsa modulus 1024
+! If Packet Tracer prompts for key size, enter: 1024
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 2
+
+ip routing
+
+! ---------- VLAN creation ----------
+! Global configuration mode
+vlan 10
+ name ADMIN
+exit
+vlan 20
+ name HR
+exit
+vlan 30
+ name IT
+exit
+vlan 40
+ name FINANCE
+exit
+vlan 50
+ name GUEST
+exit
+vlan 60
+ name DMZ_SERVERS
+exit
+vlan 99
+ name MANAGEMENT
+exit
+vlan 999
+ name BLACK_HOLE_UNUSED
+exit
+
+! ---------- DHCP exclusions ----------
+! Global configuration mode
+ip dhcp excluded-address 192.168.10.1 192.168.10.20
+ip dhcp excluded-address 192.168.20.1 192.168.20.20
+ip dhcp excluded-address 192.168.30.1 192.168.30.20
+ip dhcp excluded-address 192.168.40.1 192.168.40.20
+ip dhcp excluded-address 192.168.50.1 192.168.50.20
+
+! ---------- DHCP pools for user VLANs ----------
+! Global configuration mode
+ip dhcp pool ADMIN
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 192.168.60.10
+ domain-name securewave.local
+exit
+
+ip dhcp pool HR
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 192.168.60.10
+ domain-name securewave.local
+exit
+
+ip dhcp pool IT
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 192.168.60.10
+ domain-name securewave.local
+exit
+
+ip dhcp pool FINANCE
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.1
+ dns-server 192.168.60.10
+ domain-name securewave.local
+exit
+
+ip dhcp pool GUEST
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.1
+ dns-server 192.168.60.10
+ domain-name securewave.local
+exit
+
+! ---------- Named extended ACLs ----------
+! Global configuration mode
+
+ip access-list extended ADMIN_IN
+ remark DHCP client traffic
+ permit udp any eq bootpc any eq bootps
+ remark Admin can access HR, IT, Finance, and DMZ, but not device management
+ deny ip 192.168.10.0 0.0.0.255 192.168.99.0 0.0.0.255
+ permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+ permit ip 192.168.10.0 0.0.0.255 192.168.30.0 0.0.0.255
+ permit ip 192.168.10.0 0.0.0.255 192.168.40.0 0.0.0.255
+ permit ip 192.168.10.0 0.0.0.255 192.168.60.0 0.0.0.255
+ permit ip 192.168.10.0 0.0.0.255 any
+exit
+
+ip access-list extended HR_IN
+ remark DHCP client traffic
+ permit udp any eq bootpc any eq bootps
+ remark Allow return traffic to Admin and IT for approved initiated sessions
+ permit icmp 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ permit tcp 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ permit icmp 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255 echo-reply
+ permit tcp 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255 established
+ remark HR can access approved DMZ services
+ permit udp 192.168.20.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.20.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.20.0 0.0.0.255 host 192.168.60.20 eq www
+ permit icmp 192.168.20.0 0.0.0.255 192.168.60.0 0.0.0.255 echo
+ remark HR is blocked from Finance, Management, and unnecessary internal networks
+ deny ip 192.168.20.0 0.0.0.255 192.168.40.0 0.0.0.255
+ deny ip 192.168.20.0 0.0.0.255 192.168.99.0 0.0.0.255
+ deny ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+ deny ip 192.168.20.0 0.0.0.255 192.168.30.0 0.0.0.255
+ deny ip 192.168.20.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.20.0 0.0.0.255 any
+exit
+
+ip access-list extended IT_IN
+ remark DHCP client traffic
+ permit udp any eq bootpc any eq bootps
+ remark IT administrators can reach all internal, DMZ, management, and optional internet destinations
+ permit ip 192.168.30.0 0.0.0.255 any
+exit
+
+ip access-list extended FINANCE_IN
+ remark DHCP client traffic
+ permit udp any eq bootpc any eq bootps
+ remark Allow return traffic to Admin and IT for approved initiated sessions
+ permit icmp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ permit tcp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ permit icmp 192.168.40.0 0.0.0.255 192.168.30.0 0.0.0.255 echo-reply
+ permit tcp 192.168.40.0 0.0.0.255 192.168.30.0 0.0.0.255 established
+ remark Finance can access approved DMZ services
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.40.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.40.0 0.0.0.255 host 192.168.60.20 eq www
+ permit icmp 192.168.40.0 0.0.0.255 192.168.60.0 0.0.0.255 echo
+ remark Finance is not a general-purpose source network
+ deny ip 192.168.40.0 0.0.0.255 192.168.20.0 0.0.0.255
+ deny ip 192.168.40.0 0.0.0.255 192.168.50.0 0.0.0.255
+ deny ip 192.168.40.0 0.0.0.255 192.168.99.0 0.0.0.255
+ deny ip 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255
+ deny ip 192.168.40.0 0.0.0.255 192.168.30.0 0.0.0.255
+ deny ip 192.168.40.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.40.0 0.0.0.255 any
+exit
+
+ip access-list extended GUEST_IN
+ remark DHCP client traffic
+ permit udp any eq bootpc any eq bootps
+ remark Guest can access only approved DMZ DNS and Web services
+ permit udp 192.168.50.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.50.0 0.0.0.255 host 192.168.60.10 eq domain
+ permit tcp 192.168.50.0 0.0.0.255 host 192.168.60.20 eq www
+ remark Block Guest from all internal and management networks
+ deny ip 192.168.50.0 0.0.0.255 192.168.0.0 0.0.255.255
+ deny ip 192.168.50.0 0.0.0.255 10.0.0.0 0.255.255.255
+ permit ip 192.168.50.0 0.0.0.255 any
+exit
+
+ip access-list extended DMZ_IN
+ remark DMZ service replies are allowed, but DMZ initiation into internal VLANs is blocked
+ permit udp host 192.168.60.10 eq domain 192.168.0.0 0.0.255.255
+ permit tcp host 192.168.60.10 eq domain 192.168.0.0 0.0.255.255
+ permit tcp host 192.168.60.20 eq www 192.168.0.0 0.0.255.255
+ permit udp host 192.168.60.30 eq 1812 192.168.99.0 0.0.0.255
+ permit udp host 192.168.60.30 eq 1813 192.168.99.0 0.0.0.255
+ permit tcp host 192.168.60.30 eq 49 192.168.99.0 0.0.0.255
+ permit icmp 192.168.60.0 0.0.0.255 192.168.0.0 0.0.255.255 echo-reply
+ deny ip 192.168.60.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.60.0 0.0.0.255 any
+exit
+
+ip access-list extended MGMT_IN
+ remark Permit SSH response traffic from management devices toward IT administrators
+ permit tcp 192.168.99.0 0.0.0.255 eq 22 192.168.30.0 0.0.0.255
+ permit icmp 192.168.99.0 0.0.0.255 192.168.30.0 0.0.0.255 echo-reply
+ deny ip 192.168.99.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.99.0 0.0.0.255 any
+exit
+
+ip access-list standard SSH_IT_ONLY
+ remark Only IT VLAN users can remotely administer network devices
+ permit 192.168.30.0 0.0.0.255
+ deny any
+exit
+
+! ---------- SVI gateway interfaces ----------
+! Interface configuration mode
+interface Vlan10
+ description ADMIN default gateway
+ ip address 192.168.10.1 255.255.255.0
+ ip access-group ADMIN_IN in
+ no shutdown
+exit
+
+interface Vlan20
+ description HR default gateway
+ ip address 192.168.20.1 255.255.255.0
+ ip access-group HR_IN in
+ no shutdown
+exit
+
+interface Vlan30
+ description IT default gateway
+ ip address 192.168.30.1 255.255.255.0
+ ip access-group IT_IN in
+ no shutdown
+exit
+
+interface Vlan40
+ description FINANCE default gateway
+ ip address 192.168.40.1 255.255.255.0
+ ip access-group FINANCE_IN in
+ no shutdown
+exit
+
+interface Vlan50
+ description GUEST default gateway
+ ip address 192.168.50.1 255.255.255.0
+ ip access-group GUEST_IN in
+ no shutdown
+exit
+
+interface Vlan60
+ description DMZ_SERVERS default gateway
+ ip address 192.168.60.1 255.255.255.0
+ ip access-group DMZ_IN in
+ no shutdown
+exit
+
+interface Vlan99
+ description MANAGEMENT default gateway and Core-SW management IP
+ ip address 192.168.99.1 255.255.255.0
+ ip access-group MGMT_IN in
+ no shutdown
+exit
+
+! VLAN 999 intentionally has no SVI and no gateway.
+
+! ---------- Routed uplink to edge router ----------
+! Interface configuration mode
+interface GigabitEthernet0/1
+ description Routed uplink to Edge-Router Gi0/0
+ no switchport
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+exit
+
+! ---------- Trunks to access switches ----------
+! Interface configuration mode
+interface FastEthernet0/1
+ description Trunk to Admin-SW Fa0/24
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,99,999
+ no shutdown
+exit
+
+interface FastEthernet0/2
+ description Trunk to HR-SW Fa0/24
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 20,99,999
+ no shutdown
+exit
+
+interface FastEthernet0/3
+ description Trunk to IT-SW Fa0/24
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 30,99,999
+ no shutdown
+exit
+
+interface FastEthernet0/4
+ description Trunk to Finance-SW Fa0/24
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 40,99,999
+ no shutdown
+exit
+
+interface FastEthernet0/5
+ description Trunk to DMZ-Server-SW Fa0/24
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 50,60,99,999
+ no shutdown
+exit
+
+! ---------- Shut down unused core switch ports ----------
+! Interface configuration mode
+interface range FastEthernet0/6 - 24
+ description UNUSED - assigned to BLACK_HOLE_UNUSED
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+exit
+
+interface GigabitEthernet0/2
+ description UNUSED - assigned to BLACK_HOLE_UNUSED
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+exit
+
+! ---------- OSPF routing ----------
+! Router configuration mode
+router ospf 10
+ router-id 2.2.2.2
+ passive-interface default
+ no passive-interface GigabitEthernet0/1
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.10.0 0.0.0.255 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+ network 192.168.30.0 0.0.0.255 area 0
+ network 192.168.40.0 0.0.0.255 area 0
+ network 192.168.50.0 0.0.0.255 area 0
+ network 192.168.60.0 0.0.0.255 area 0
+ network 192.168.99.0 0.0.0.255 area 0
+exit
+
+! ---------- Console access ----------
+! Line configuration mode
+line console 0
+ password Console2026
+ login
+ logging synchronous
+ exec-timeout 10 0
+exit
+
+! ---------- VTY SSH-only access ----------
+! Line configuration mode
+line vty 0 4
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+line vty 5 15
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+! If "login authentication default" is rejected, use this fallback under VTY lines:
+! login local
+
+end
+write memory
+
+! ---------- Verification commands ----------
+! show vlan brief
+! show interfaces trunk
+! show ip interface brief
+! show ip route
+! show ip ospf neighbor
+! show access-lists
+! show ip dhcp binding
+! show ip ssh
+! show line vty 0 4
+! show interfaces status
+! show spanning-tree

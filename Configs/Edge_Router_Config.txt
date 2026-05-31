@@ -1,0 +1,153 @@
+! ============================================================
+! Device: Edge-Router
+! Platform: Cisco 2911 or compatible Packet Tracer router
+! Paste location:
+!   1. Open Edge-Router CLI
+!   2. Enter privileged EXEC mode with: enable
+!   3. Enter global configuration mode with: configure terminal
+! ============================================================
+
+enable
+configure terminal
+
+! ---------- Global configuration mode ----------
+hostname Edge-Router
+no ip domain-lookup
+ip domain-name securewave.local
+service password-encryption
+enable secret SW-Enable-2026
+banner motd # UNAUTHORIZED ACCESS TO SECUREWAVE SOLUTIONS NETWORK DEVICES IS PROHIBITED. ACCESS IS MONITORED. #
+
+username netadmin privilege 15 secret SwaveAdmin2026
+
+! ---------- AAA configuration ----------
+! Global configuration mode
+aaa new-model
+aaa authentication login default local
+aaa authorization exec default local
+
+! [PACKET TRACER LIMITATION]
+! Real enterprise networks commonly use Cisco ISE, RADIUS, or TACACS+.
+! Packet Tracer AAA support varies by version and device image.
+! If your Packet Tracer build supports external AAA, you can test one of these patterns:
+!
+! RADIUS example, if supported:
+! radius-server host 192.168.60.30 auth-port 1645 key SecureWaveAAA123
+! aaa authentication login default group radius local
+!
+! TACACS+ example, if supported:
+! tacacs-server host 192.168.60.30 key SecureWaveAAA123
+! aaa authentication login default group tacacs+ local
+!
+! Compatible fallback used by this config: local AAA.
+
+! ---------- SSH hardening ----------
+! Global configuration mode
+crypto key generate rsa modulus 1024
+! If Packet Tracer prompts for key size, enter: 1024
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 2
+
+! ---------- SSH source restriction ----------
+! Global configuration mode
+ip access-list standard SSH_IT_ONLY
+ remark Only IT VLAN users can remotely administer this router
+ permit 192.168.30.0 0.0.0.255
+ deny any
+exit
+
+! ---------- Routed link to Core-SW ----------
+! Interface configuration mode
+interface GigabitEthernet0/0
+ description Routed link to Core-SW Gi0/1
+ ip address 10.0.0.1 255.255.255.252
+ ip nat inside
+ no shutdown
+exit
+
+! ---------- Optional WAN/ISP simulation ----------
+! Interface configuration mode
+interface GigabitEthernet0/1
+ description Optional ISP simulation link to ISP-Router Gi0/0
+ ip address 203.0.113.2 255.255.255.252
+ ip nat outside
+ no shutdown
+exit
+
+! ---------- Router management loopback ----------
+! Interface configuration mode
+interface Loopback99
+ description Router management loopback for SSH testing
+ ip address 192.168.99.254 255.255.255.255
+exit
+
+! [PACKET TRACER LIMITATION]
+! The edge router is connected to the core through a routed link, not a physical VLAN 99 access port.
+! Loopback99 simulates a stable router management address.
+! In production this could be an out-of-band management interface, management VRF, or routed management subnet.
+
+! ---------- Optional default route toward ISP ----------
+! Global configuration mode
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+! ---------- NAT/PAT for optional internet simulation ----------
+! Global configuration mode
+ip access-list standard NAT_INSIDE
+ remark Internal branch networks allowed to use PAT
+ permit 192.168.0.0 0.0.255.255
+exit
+ip nat inside source list NAT_INSIDE interface GigabitEthernet0/1 overload
+
+! ---------- OSPF routing ----------
+! Router configuration mode
+router ospf 10
+ router-id 1.1.1.1
+ passive-interface default
+ no passive-interface GigabitEthernet0/0
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.99.254 0.0.0.0 area 0
+ default-information originate
+exit
+
+! ---------- Console access ----------
+! Line configuration mode
+line console 0
+ password Console2026
+ login
+ logging synchronous
+ exec-timeout 10 0
+exit
+
+! ---------- VTY SSH-only access ----------
+! Line configuration mode
+line vty 0 4
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+line vty 5 15
+ access-class SSH_IT_ONLY in
+ login authentication default
+ transport input ssh
+ exec-timeout 10 0
+exit
+
+! If "login authentication default" is rejected in your Packet Tracer image,
+! use this compatible fallback under the VTY lines:
+! login local
+
+end
+write memory
+
+! ---------- Verification commands ----------
+! show ip interface brief
+! show ip route
+! show ip ospf neighbor
+! show ip nat translations
+! show access-lists
+! show ip ssh
+! show line vty 0 4
+! show users
