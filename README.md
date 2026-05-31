@@ -120,15 +120,6 @@ This project simulates a secure enterprise branch network for a fictional compan
 
 ---
 
-## Resume Bullets
-
-- Designed and deployed a multi-VLAN enterprise branch network in Cisco Packet Tracer with Layer 3 SVI inter-VLAN routing, DHCP, and a DMZ hosting DNS and web services
-- Troubleshot DHCP and routing failures using CDP and IOS show commands, identifying physical port mismatches across multiple access switches
-- Configured a DMZ server network with static IPs, DNS A-record resolution, and HTTP service verification via browser
-- Documented a full enterprise network topology with verified screenshots, GitHub repository, and GitHub Pages hosted project page
-
----
-
 ## Lab Credential Notice
 
 This project uses lab-only credentials inside the Cisco Packet Tracer simulation for console, enable, and SSH-style access testing.
