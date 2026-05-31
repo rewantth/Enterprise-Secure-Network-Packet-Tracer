@@ -1,205 +1,162 @@
 # SecureWave Enterprise Network — Cisco Packet Tracer
 
-A hands-on Cisco Packet Tracer enterprise network simulation built to demonstrate VLAN segmentation, Layer 3 switching, DHCP, DMZ services, DNS resolution, web hosting, and an Edge Router connection.
+A hands-on enterprise network simulation built in **Cisco Packet Tracer**, demonstrating VLAN segmentation, Layer 3 switching, DHCP, DMZ services, DNS resolution, web hosting, and Edge Router connectivity.
 
-This project simulates a small enterprise branch network for a fictional company called **SecureWave Solutions**. The goal was to design and validate a clean internal network where departments are separated into VLANs, users receive DHCP addresses automatically, servers are placed in a DMZ, and users can access an internal website through DNS.
+🌐 **Live Documentation:**
+https://rewantth.github.io/Enterprise-Secure-Network-Packet-Tracer/
 
-> **Note:** This is a Cisco Packet Tracer simulation project. All credentials and IP addresses are lab-only and are not production secrets.
+📦 **Packet Tracer File:**
+[`SecureWave_Working_Base_With_Edge.pkt`](SecureWave_Working_Base_With_Edge.pkt)
 
----
-
-## Project Highlights
-
-* Built a multi-department enterprise network topology
-* Configured VLAN segmentation for Admin, HR, IT, Finance, Guest, and DMZ
-* Configured a Layer 3 core switch for inter-VLAN routing
-* Created DHCP pools for multiple user VLANs
-* Deployed DNS and Web servers in a DMZ VLAN
-* Configured DNS records for `www.securewave.local`
-* Verified web access using both IP address and DNS name
-* Configured an Edge Router link to the core switch
-* Documented testing evidence with screenshots
-* Troubleshot real configuration issues such as trunk mismatches, wrong switch ports, DHCP failures, and missing SVI IP addresses
+> This project is a Cisco Packet Tracer simulation. The `.pkt` file must be opened using Cisco Packet Tracer.
 
 ---
 
-## Network Topology
+## 🔎 Project Overview
 
-The network uses a Layer 3 core switch connected to multiple access switches. Each department has its own access switch and VLAN. Servers are placed behind a dedicated DMZ switch.
+This project simulates a secure enterprise branch network for a fictional company, **SecureWave Solutions**.
 
-![Full Network Topology](Screenshots/01-full-topology.png)
-
----
-
-## VLAN and IP Addressing Plan
-
-| VLAN | Name              | Subnet          | Default Gateway | Purpose                   |
-| ---- | ----------------- | --------------- | --------------- | ------------------------- |
-| 10   | ADMIN             | 192.168.10.0/24 | 192.168.10.1    | Admin department users    |
-| 20   | HR                | 192.168.20.0/24 | 192.168.20.1    | Human Resources users     |
-| 30   | IT                | 192.168.30.0/24 | 192.168.30.1    | IT department users       |
-| 40   | FINANCE           | 192.168.40.0/24 | 192.168.40.1    | Finance users             |
-| 50   | GUEST             | 192.168.50.0/24 | 192.168.50.1    | Guest laptop/network      |
-| 60   | DMZ_SERVERS       | 192.168.60.0/24 | 192.168.60.1    | DNS, Web, and AAA servers |
-| 99   | MANAGEMENT        | 192.168.99.0/24 | 192.168.99.1    | Network management        |
-| 999  | BLACK_HOLE_UNUSED | N/A             | N/A             | Unused/shutdown ports     |
+The network includes separate VLANs for Admin, HR, IT, Finance, Guest users, and DMZ servers. A Layer 3 core switch handles inter-VLAN routing and DHCP services. DNS and Web servers are hosted in the DMZ, and users can access the internal website through `www.securewave.local`.
 
 ---
 
-## Server Addressing
+## 🧠 What I Built
 
-| Server     |    IP Address | Role                                                 |
-| ---------- | ------------: | ---------------------------------------------------- |
-| DNS-SERVER | 192.168.60.10 | DNS resolution for internal domain                   |
-| WEB-SERVER | 192.168.60.20 | Internal SecureWave website                          |
-| AAA-SERVER | 192.168.60.30 | AAA server placeholder for future security expansion |
+* Department-based VLAN segmentation
+* Layer 3 core switch with SVI gateways
+* DHCP pools for multiple VLANs
+* Trunk links between core and access switches
+* DMZ network for DNS, Web, and AAA servers
+* Internal DNS resolution for `www.securewave.local`
+* Edge Router to Core Switch routed link
+* Basic device password hardening
+* Testing evidence through screenshots
+
+---
+
+## 🖥️ Network Topology
+
+![Full Topology](Screenshots/01-full-topology.png)
 
 ---
 
-## Verification Evidence
+## 🧩 VLAN Design
 
-### VLAN Configuration
-
-The core switch was configured with VLANs for each department and service zone.
-
-![VLAN Verification](Screenshots/02-core-show-vlan-brief.png)
+| VLAN | Name              | Subnet          | Gateway      | Purpose                   |
+| ---- | ----------------- | --------------- | ------------ | ------------------------- |
+| 10   | ADMIN             | 192.168.10.0/24 | 192.168.10.1 | Admin users               |
+| 20   | HR                | 192.168.20.0/24 | 192.168.20.1 | HR users                  |
+| 30   | IT                | 192.168.30.0/24 | 192.168.30.1 | IT users                  |
+| 40   | FINANCE           | 192.168.40.0/24 | 192.168.40.1 | Finance users             |
+| 50   | GUEST             | 192.168.50.0/24 | 192.168.50.1 | Guest laptop/network      |
+| 60   | DMZ_SERVERS       | 192.168.60.0/24 | 192.168.60.1 | DNS, Web, and AAA servers |
+| 99   | MANAGEMENT        | 192.168.99.0/24 | 192.168.99.1 | Management VLAN           |
+| 999  | BLACK_HOLE_UNUSED | N/A             | N/A          | Unused ports              |
 
 ---
+
+## 🛠️ Services Configured
+
+| Service             | Device     | IP Address    |
+| ------------------- | ---------- | ------------- |
+| DNS                 | DNS-SERVER | 192.168.60.10 |
+| Web Server          | WEB-SERVER | 192.168.60.20 |
+| AAA Placeholder     | AAA-SERVER | 192.168.60.30 |
+| Edge Router         | EDGE-R1    | 10.0.0.1      |
+| Core Edge Interface | CORE-SW    | 10.0.0.2      |
+
+---
+
+## ✅ Verification Evidence
+
+### VLAN Verification
+
+![VLAN Brief](Screenshots/02-core-show-vlan-brief.png)
 
 ### Trunk Verification
 
-Trunk links were configured between the core switch and access switches so VLAN traffic can travel across the network.
-
 ![Trunk Verification](Screenshots/03-core-show-interfaces-trunk.png)
-
----
 
 ### Layer 3 Gateway Verification
 
-The core switch provides SVI gateway interfaces for each VLAN.
-
 ![IP Interface Brief](Screenshots/04-core-show-ip-interface-brief.png)
-
----
 
 ### DHCP Verification
 
-DHCP pools were configured on the core switch, and client devices received correct addresses automatically.
-
 ![DHCP Binding](Screenshots/05-core-show-ip-dhcp-binding.png)
-
----
 
 ### PC IP Configuration
 
-Client devices received IP addresses from their correct VLAN subnets.
-
 ![PC IPConfig Proof](Screenshots/06-pc-ipconfig-proof.png)
 
----
-
-### Admin VLAN Gateway Test
-
-Admin client connectivity to its VLAN gateway was tested successfully.
+### Admin Gateway Test
 
 ![Admin Gateway Ping](Screenshots/07-admin-to-gateway-ping.png)
 
----
-
 ### DMZ Server Connectivity
 
-Admin client connectivity to DMZ services was verified.
+![Admin to DMZ Ping](Screenshots/08-admin-to-dmz-server-ping.png)
 
-![Admin to DMZ Server Ping](Screenshots/08-admin-to-dmz-server-ping.png)
+### DNS-Based Web Access
 
----
+![Web Server DNS](Screenshots/09-web-server-by-dns-name.png)
 
-### DNS and Web Server Test
-
-The internal website successfully opened using DNS name resolution.
-
-![Web Server DNS Test](Screenshots/09-web-server-by-dns-name.png)
-
----
-
-### Core-to-Edge Router Test
-
-The routed link between the core switch and Edge Router was verified.
+### Core-to-Edge Connectivity
 
 ![Core Edge Ping](Screenshots/10-core-edge-ping-success.png)
 
 ---
 
-## Troubleshooting Performed
+## 🧪 Troubleshooting Highlights
 
-During the build, several realistic network issues were identified and fixed:
+During the build, I fixed several realistic network issues:
 
-* DHCP failed because some access switch uplink ports were configured as access ports instead of trunks.
-* CDP was used to identify real physical uplink ports.
-* Native VLAN mismatch messages were resolved by correcting trunk configurations.
-* VLAN 60 initially lacked an SVI IP address, preventing access to DMZ servers.
-* The Edge Router link initially failed because the IP address was configured on the wrong core switch interface.
-* The final working design was saved after confirming VLANs, DHCP, DMZ services, DNS, web access, and Edge Router connectivity.
+* DHCP failures caused by access switch uplink ports being configured as access ports instead of trunk ports.
+* Native VLAN mismatch warnings caused by incorrect trunk/access port roles.
+* DMZ server access failure caused by a missing VLAN 60 SVI IP address.
+* Edge Router ping failure caused by assigning the routed IP to the wrong core switch interface.
+* Port identification issues resolved using `show cdp neighbors`.
+
+These troubleshooting steps helped validate the network the way a real network engineer would: by checking physical links, VLAN membership, trunks, DHCP bindings, SVIs, and routing paths.
 
 ---
 
-## Current Status
+## 🚀 Current Status
 
 Implemented:
 
 * VLAN segmentation
-* Layer 3 inter-VLAN routing
-* DHCP for user VLANs
-* Guest VLAN
-* DMZ VLAN
-* DNS server
-* Web server
-* Internal DNS name: `www.securewave.local`
+* Trunking
+* DHCP
+* Inter-VLAN routing
+* DMZ DNS/Web services
+* Web access using `www.securewave.local`
 * Edge Router to Core Switch link
-* Basic device password hardening
+* Basic password hardening
+* Screenshot-based validation
 
 Planned next phase:
 
-* ACL-based security rules
-* HR-to-Finance blocked traffic test
-* Guest-to-internal blocked traffic test
+* ACL-based traffic filtering
+* Guest-to-internal blocking
+* HR-to-Finance blocking
 * IT-only SSH management access
-* Non-IT SSH blocked test
-* Final access control evidence screenshots
+* Final security validation screenshots
 
 ---
 
-## How to Open the Project
+## 📂 How to Use
 
-1. Install Cisco Packet Tracer.
-2. Download this repository.
-3. Open the Packet Tracer file:
-
-```text
-SecureWave_Working_Base_With_Edge.pkt
-```
-
-4. Review the topology, device configurations, and testing evidence.
+1. Download the repository.
+2. Open `SecureWave_Working_Base_With_Edge.pkt` in Cisco Packet Tracer.
+3. Review the topology, VLANs, DHCP settings, DNS/Web services, and test evidence.
+4. Use the screenshots in this repository to verify the working configuration.
 
 ---
 
-## Skills Demonstrated
-
-* Cisco Packet Tracer network design
-* VLAN segmentation
-* Trunk configuration
-* Layer 3 switching
-* DHCP configuration
-* Inter-VLAN routing
-* DMZ design
-* DNS and HTTP service configuration
-* Network troubleshooting
-* CDP-based port verification
-* Technical documentation
-* Evidence-based validation
-
----
-
-## Lab Credential Notice
+## 🔐 Lab Credential Notice
 
 All credentials used in this project are lab-only credentials for Cisco Packet Tracer simulation. They are not real production credentials and should not be reused outside this lab.
+
+---
+
